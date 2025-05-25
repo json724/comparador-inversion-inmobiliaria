@@ -1,5 +1,7 @@
 # Comparación de Inversión Inmobiliaria
 
+[¡Probar el simulador en línea!](https://json724.github.io/comparador-inversion-inmobiliaria/)
+
 Este proyecto es un simulador interactivo para comparar la rentabilidad de invertir en uno o dos proyectos inmobiliarios frente a instrumentos financieros líquidos en Colombia.
 
 ## Características principales
