@@ -22,18 +22,18 @@ Este proyecto es un simulador interactivo para comparar la rentabilidad de inver
 python3 -m http.server 8000
 ```
 Luego abre tu navegador en:
-[http://localhost:8000/reit_analyzer.html](http://localhost:8000/reit_analyzer.html)
+[http://localhost:8000/index.html](http://localhost:8000/index.html)
 
 ### Opción con VSCode Live Server
 - Instala la extensión "Live Server" en VSCode.
-- Haz clic derecho en `reit_analyzer.html` y selecciona "Open with Live Server".
+- Haz clic derecho en `index.html` y selecciona "Open with Live Server".
 
 ## Configuración de valores por defecto
 
 Todos los valores iniciales de los formularios están en el archivo `config.js`. Puedes editar este archivo para cambiar los valores por defecto de los proyectos, tasas, plazos y escenarios.
 
 ## Estructura de archivos
-- `reit_analyzer.html`: Página principal del simulador.
+- `index.html`: Página principal del simulador.
 - `config.js`: Archivo de configuración de valores por defecto.
 - `README.md`: Este archivo.
 - `favicon.png`: (Opcional) Ícono de la página.
