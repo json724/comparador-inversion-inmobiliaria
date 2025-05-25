@@ -36,7 +36,7 @@ Todos los valores iniciales de los formularios están en el archivo `config.js`.
 - `index.html`: Página principal del simulador.
 - `config.js`: Archivo de configuración de valores por defecto.
 - `README.md`: Este archivo.
-- `favicon.png`: (Opcional) Ícono de la página.
+- `assets/favicon/`: Íconos y archivos de favicon para la página.
 
 ## Sugerencias
 - Puedes personalizar el favicon usando [favicon.io](https://favicon.io/emoji-favicons/house/).
