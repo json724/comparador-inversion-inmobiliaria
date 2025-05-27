@@ -18,7 +18,7 @@ export class ViabilityCalculator {
             propertyTaxPercent: project1Config.propertyTaxPercent || 0.5, // %
             maintenancePercent: project1Config.maintenancePercent || 1.0, // %
             insurancePercent: project1Config.insurancePercent || 0.3, // %
-            adminFeePercent: 0.5, // % of monthly rent - specific to viability analysis
+            adminFeeMonthly: project1Config.adminFeeMonthly || 0, // COP - consistent with comparator
             inflationRate: generalConfig.inflationRate || 5.0 // %
         };
     }
@@ -34,145 +34,222 @@ export class ViabilityCalculator {
             propertyTaxPercent,
             maintenancePercent,
             insurancePercent,
-            adminFeePercent
+            adminFeeMonthly
         } = inputs;
 
-        // Convert percentages to decimals
-        const rentalYieldDecimal = expectedRentalYield / 100;
-        const interestRateDecimal = interestRate / 100;
-        const downPaymentDecimal = downPaymentPercent / 100;
-        const notaryFeesDecimal = notaryFeesPercent / 100;
-        const propertyTaxDecimal = propertyTaxPercent / 100;
-        const maintenanceDecimal = maintenancePercent / 100;
-        const insuranceDecimal = insurancePercent / 100;
-        const adminFeeDecimal = adminFeePercent / 100;
-
-        // Target annual cashflow
-        const targetAnnualCashflow = targetMonthlyCashflow * 12;
-
-        // We need to solve for property value iteratively
-        // Starting with an estimate based on rental yield
-        let propertyValue = targetAnnualCashflow / (rentalYieldDecimal * 0.5); // Conservative estimate
-        let iterations = 0;
-        const maxIterations = 100;
-        const tolerance = 1000; // COP tolerance
-
-        // Debug: Log initial estimate
-        console.log('=== CÁLCULO DE VIABILIDAD - DEBUG ===');
-        console.log(`Cashflow objetivo mensual: ${this.formatCOP(targetMonthlyCashflow)}`);
-        console.log(`Cashflow objetivo anual: ${this.formatCOP(targetAnnualCashflow)}`);
-        console.log(`Rentabilidad esperada: ${expectedRentalYield}%`);
-        console.log(`Estimación inicial de valor de propiedad: ${this.formatCOP(propertyValue)}`);
+        console.log('=== CÁLCULO DIRECTO DE VIABILIDAD ===');
+        console.log(`Objetivo: ${this.formatCOP(targetMonthlyCashflow)} mensuales`);
+        console.log(`Parámetros: Rentabilidad ${expectedRentalYield}%, Crédito ${loanTermYears} años al ${interestRate}%`);
         console.log('');
 
-        while (iterations < maxIterations) {
-            const result = this.calculateCashflowForPropertyValue(propertyValue, {
-                interestRateDecimal,
+        // Convert percentages to decimals
+        const r = expectedRentalYield / 100; // rental yield
+        const i = interestRate / 100; // interest rate
+        const d = downPaymentPercent / 100; // down payment
+        const n = notaryFeesPercent / 100; // notary fees
+        const g = (propertyTaxPercent + maintenancePercent + insurancePercent) / 100; // total expense rate
+
+        const targetAnnualCashflow = targetMonthlyCashflow * 12;
+        const adminFeeAnnual = adminFeeMonthly * 12;
+
+        console.log(`Gastos fijos anuales (administración): ${this.formatCOP(adminFeeAnnual)}`);
+        console.log(`Tasa de gastos variables: ${(g * 100).toFixed(2)}% del valor de la propiedad`);
+        console.log('');
+
+        // Use direct mathematical approach with Newton-Raphson method
+        // Since mortgage payment is non-linear in property value, we need numerical solution
+        const result = this.solveForPropertyValue(targetAnnualCashflow, r, g, adminFeeAnnual, i, loanTermYears, d, n);
+
+        console.log('=== RESULTADO FINAL ===');
+        console.log(`Valor de propiedad necesario: ${this.formatCOP(result.requiredPropertyValue)}`);
+        console.log(`Capital total requerido: ${this.formatCOP(result.totalRequiredCapital)}`);
+        console.log(`Renta mensual: ${this.formatCOP(result.monthlyRent)}`);
+        console.log(`Cashflow neto mensual: ${this.formatCOP(result.netMonthlyCashflow)}`);
+        console.log('========================');
+
+        return result;
+    }
+
+    solveForPropertyValue(targetAnnualCashflow, rentalYield, expenseRate, adminFeeAnnual, interestRate, loanTermYears, downPaymentRate, notaryRate) {
+        // More robust algorithm: Bisection method with Newton-Raphson refinement
+
+        console.log(`Buscando valor de propiedad para cashflow objetivo: ${this.formatCOP(targetAnnualCashflow)}`);
+
+        // Define the function we want to solve: f(V) = cashflow(V) - target = 0
+        const cashflowFunction = (V) => {
+            const result = this.calculateCashflowForPropertyValue(V, {
+                rentalYield,
+                expenseRate,
+                adminFeeAnnual,
+                interestRate,
                 loanTermYears,
-                downPaymentDecimal,
-                notaryFeesDecimal,
-                propertyTaxDecimal,
-                maintenanceDecimal,
-                insuranceDecimal,
-                adminFeeDecimal,
-                rentalYieldDecimal
+                downPaymentRate,
+                notaryRate
             });
+            return result.netAnnualCashflow - targetAnnualCashflow;
+        };
 
-            const cashflowDifference = result.netAnnualCashflow - targetAnnualCashflow;
+        // First, find bounds where the function changes sign
+        let lowerBound = 10000000; // 10M COP minimum
+        let upperBound = 10000000000; // 10B COP maximum
 
-            // Debug: Log iteration details
-            if (iterations < 5 || iterations % 10 === 0) {
-                console.log(`--- Iteración ${iterations + 1} ---`);
-                console.log(`Valor propiedad: ${this.formatCOP(propertyValue)}`);
-                console.log(`Renta anual calculada: ${this.formatCOP(result.annualRent)}`);
-                console.log(`Gastos anuales totales: ${this.formatCOP(result.totalAnnualExpenses)}`);
-                console.log(`Pago hipoteca anual: ${this.formatCOP(result.annualMortgagePayment)}`);
-                console.log(`Cashflow neto anual: ${this.formatCOP(result.netAnnualCashflow)}`);
-                console.log(`Diferencia con objetivo: ${this.formatCOP(cashflowDifference)}`);
-                console.log(`Capital requerido: ${this.formatCOP(result.requiredDownPayment)}`);
-                console.log('');
+        console.log('Buscando límites donde la función cambia de signo...');
+
+        // Find upper bound where cashflow becomes positive
+        let iterations = 0;
+        const maxSearchIterations = 50;
+
+        while (iterations < maxSearchIterations) {
+            const fUpper = cashflowFunction(upperBound);
+            console.log(`Probando límite superior V = ${this.formatCOP(upperBound)}, f(V) = ${this.formatCOP(fUpper)}`);
+
+            if (fUpper > 0) {
+                break; // Found positive cashflow
             }
 
-            if (Math.abs(cashflowDifference) < tolerance) {
-                console.log(`Convergencia alcanzada en ${iterations + 1} iteraciones`);
-                break;
+            upperBound *= 2; // Double the search range
+            iterations++;
+        }
+
+        if (iterations >= maxSearchIterations) {
+            console.log('⚠️ No se encontró un límite superior viable. El objetivo puede ser imposible con estos parámetros.');
+            // Return a reasonable estimate anyway
+            return this.calculateFinalResult(upperBound / 2, {
+                rentalYield,
+                expenseRate,
+                adminFeeAnnual,
+                interestRate,
+                loanTermYears,
+                downPaymentRate,
+                notaryRate
+            });
+        }
+
+        // Verify we have opposite signs
+        const fLower = cashflowFunction(lowerBound);
+        const fUpper = cashflowFunction(upperBound);
+
+        console.log(`Límites encontrados:`);
+        console.log(`  Inferior: V = ${this.formatCOP(lowerBound)}, f(V) = ${this.formatCOP(fLower)}`);
+        console.log(`  Superior: V = ${this.formatCOP(upperBound)}, f(V) = ${this.formatCOP(fUpper)}`);
+
+        if (fLower * fUpper > 0) {
+            console.log('⚠️ Los límites no tienen signos opuestos. Usando estimación directa.');
+            // Fallback to simple estimation
+            const estimatedV = (targetAnnualCashflow + adminFeeAnnual) / (rentalYield - expenseRate - 0.05); // Rough mortgage estimate
+            return this.calculateFinalResult(Math.max(estimatedV, lowerBound), {
+                rentalYield,
+                expenseRate,
+                adminFeeAnnual,
+                interestRate,
+                loanTermYears,
+                downPaymentRate,
+                notaryRate
+            });
+        }
+
+        // Bisection method
+        console.log('Iniciando método de bisección...');
+        const tolerance = 1000; // COP
+        const maxIterations = 30;
+        iterations = 0;
+
+        let left = lowerBound;
+        let right = upperBound;
+
+        while (iterations < maxIterations && (right - left) > tolerance) {
+            const mid = (left + right) / 2;
+            const fMid = cashflowFunction(mid);
+
+            if (iterations < 5 || iterations % 5 === 0) {
+                console.log(`Bisección ${iterations + 1}: V = ${this.formatCOP(mid)}, f(V) = ${this.formatCOP(fMid)}`);
             }
 
-            // Adjust property value based on cashflow difference
-            const adjustmentFactor = 1 + (cashflowDifference / targetAnnualCashflow) * 0.1;
-            propertyValue = propertyValue / adjustmentFactor;
+            if (Math.abs(fMid) < tolerance) {
+                console.log(`✅ Convergencia alcanzada en ${iterations + 1} iteraciones`);
+                return this.calculateFinalResult(mid, {
+                    rentalYield,
+                    expenseRate,
+                    adminFeeAnnual,
+                    interestRate,
+                    loanTermYears,
+                    downPaymentRate,
+                    notaryRate
+                });
+            }
+
+            // Update bounds
+            if (fMid * fLower < 0) {
+                right = mid;
+            } else {
+                left = mid;
+            }
 
             iterations++;
         }
 
-        // Calculate final metrics
-        const finalResult = this.calculateCashflowForPropertyValue(propertyValue, {
-            interestRateDecimal,
-            loanTermYears,
-            downPaymentDecimal,
-            notaryFeesDecimal,
-            propertyTaxDecimal,
-            maintenanceDecimal,
-            insuranceDecimal,
-            adminFeeDecimal,
-            rentalYieldDecimal
-        });
+        // Return the midpoint as final result
+        const finalV = (left + right) / 2;
+        console.log(`Método de bisección completado. Valor final: ${this.formatCOP(finalV)}`);
 
-        console.log('=== RESULTADO FINAL ===');
-        console.log(`Valor de propiedad necesario: ${this.formatCOP(propertyValue)}`);
-        console.log(`Capital total requerido: ${this.formatCOP(finalResult.requiredDownPayment)}`);
-        console.log(`Renta mensual: ${this.formatCOP(finalResult.monthlyRent)}`);
-        console.log(`Cashflow neto mensual: ${this.formatCOP(finalResult.netAnnualCashflow / 12)}`);
-        console.log('========================');
+        return this.calculateFinalResult(finalV, {
+            rentalYield,
+            expenseRate,
+            adminFeeAnnual,
+            interestRate,
+            loanTermYears,
+            downPaymentRate,
+            notaryRate
+        });
+    }
+
+    calculateFinalResult(propertyValue, params) {
+        const result = this.calculateCashflowForPropertyValue(propertyValue, params);
 
         return {
             requiredPropertyValue: propertyValue,
-            totalValueWithNotary: finalResult.totalValueWithNotary,
-            requiredDownPayment: finalResult.requiredDownPayment,
-            loanAmount: finalResult.loanAmount,
-            monthlyRent: finalResult.monthlyRent,
-            annualRent: finalResult.annualRent,
-            totalAnnualExpenses: finalResult.totalAnnualExpenses,
-            annualMortgagePayment: finalResult.annualMortgagePayment,
-            netAnnualCashflow: finalResult.netAnnualCashflow,
-            netMonthlyCashflow: finalResult.netAnnualCashflow / 12,
-            totalRequiredCapital: finalResult.requiredDownPayment,
-            iterations: iterations
+            totalValueWithNotary: result.totalValueWithNotary,
+            requiredDownPayment: result.requiredDownPayment,
+            loanAmount: result.loanAmount,
+            monthlyRent: result.monthlyRent,
+            annualRent: result.annualRent,
+            totalAnnualExpenses: result.totalAnnualExpenses,
+            annualMortgagePayment: result.annualMortgagePayment,
+            netAnnualCashflow: result.netAnnualCashflow,
+            netMonthlyCashflow: result.netAnnualCashflow / 12,
+            totalRequiredCapital: result.requiredDownPayment,
+            iterations: 0
         };
     }
 
     calculateCashflowForPropertyValue(propertyValue, params) {
         const {
-            interestRateDecimal,
+            rentalYield,
+            expenseRate,
+            adminFeeAnnual,
+            interestRate,
             loanTermYears,
-            downPaymentDecimal,
-            notaryFeesDecimal,
-            propertyTaxDecimal,
-            maintenanceDecimal,
-            insuranceDecimal,
-            adminFeeDecimal,
-            rentalYieldDecimal
+            downPaymentRate,
+            notaryRate
         } = params;
 
-        // Calculate costs and financing
-        const notaryFees = propertyValue * notaryFeesDecimal;
+        // Calculate costs and financing (consistent with comparator)
+        const notaryFees = propertyValue * notaryRate;
         const totalValueWithNotary = propertyValue + notaryFees;
-        const requiredDownPayment = totalValueWithNotary * downPaymentDecimal;
+        const requiredDownPayment = totalValueWithNotary * downPaymentRate;
         const loanAmount = totalValueWithNotary - requiredDownPayment;
 
         // Calculate annual rent based on rental yield
-        const annualRent = propertyValue * rentalYieldDecimal;
+        const annualRent = propertyValue * rentalYield;
         const monthlyRent = annualRent / 12;
 
-        // Calculate annual expenses
-        const propertyTax = propertyValue * propertyTaxDecimal;
-        const maintenance = propertyValue * maintenanceDecimal;
-        const insurance = propertyValue * insuranceDecimal;
-        const adminFee = annualRent * adminFeeDecimal;
-        const totalAnnualExpenses = propertyTax + maintenance + insurance + adminFee;
+        // Calculate annual expenses (consistent with comparator)
+        const variableExpenses = propertyValue * expenseRate; // predial + maintenance + insurance
+        const fixedExpenses = adminFeeAnnual; // administration (paid by tenant, so usually 0)
+        const totalAnnualExpenses = variableExpenses + fixedExpenses;
 
-        // Calculate mortgage payment
-        const annualMortgagePayment = calculateAnnualMortgagePayment(loanAmount, interestRateDecimal, loanTermYears);
+        // Calculate mortgage payment (same function as comparator)
+        const annualMortgagePayment = calculateAnnualMortgagePayment(loanAmount, interestRate, loanTermYears);
 
         // Calculate net cashflow
         const netAnnualCashflow = annualRent - totalAnnualExpenses - annualMortgagePayment;

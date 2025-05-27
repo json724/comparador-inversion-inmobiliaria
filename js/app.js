@@ -102,6 +102,7 @@ class REITAnalyzer {
             propertyTaxPercentInput: document.getElementById('viabilityPropertyTaxPercent'),
             maintenancePercentInput: document.getElementById('viabilityMaintenancePercent'),
             insurancePercentInput: document.getElementById('viabilityInsurancePercent'),
+            adminFeeMonthlyInput: document.getElementById('viabilityAdminFeeMonthly'),
             calculateButton: document.getElementById('calculateViabilityButton'),
             resetButton: document.getElementById('resetViabilityButton'),
             errorMessage: document.getElementById('viabilityErrorMessage')
@@ -127,6 +128,7 @@ class REITAnalyzer {
         this.viabilityElements.propertyTaxPercentInput.value = defaults.propertyTaxPercent;
         this.viabilityElements.maintenancePercentInput.value = defaults.maintenancePercent;
         this.viabilityElements.insurancePercentInput.value = defaults.insurancePercent;
+        this.viabilityElements.adminFeeMonthlyInput.value = defaults.adminFeeMonthly;
     }
 
     setupEventListeners() {
@@ -262,9 +264,6 @@ class REITAnalyzer {
         try {
             this.viabilityElements.errorMessage.textContent = '';
 
-            // Show manual calculation example first
-            this.viabilityCalculator.showManualCalculationExample();
-
             const inputs = this.getViabilityInputs();
             if (!inputs) return;
 
@@ -294,7 +293,7 @@ class REITAnalyzer {
             propertyTaxPercent: parseFloat(this.viabilityElements.propertyTaxPercentInput.value),
             maintenancePercent: parseFloat(this.viabilityElements.maintenancePercentInput.value),
             insurancePercent: parseFloat(this.viabilityElements.insurancePercentInput.value),
-            adminFeePercent: 0.5, // Default admin fee as percentage of rent
+            adminFeeMonthly: parseFloat(this.viabilityElements.adminFeeMonthlyInput.value),
             inflationRate: 5.0 // Default inflation rate
         };
 
@@ -365,6 +364,7 @@ class REITAnalyzer {
         this.viabilityElements.propertyTaxPercentInput.value = defaults.propertyTaxPercent;
         this.viabilityElements.maintenancePercentInput.value = defaults.maintenancePercent;
         this.viabilityElements.insurancePercentInput.value = defaults.insurancePercent;
+        this.viabilityElements.adminFeeMonthlyInput.value = defaults.adminFeeMonthly;
 
         const today = new Date().toISOString().split('T')[0];
         this.viabilityElements.dateInput.value = today;
