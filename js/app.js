@@ -8,11 +8,12 @@ class REITAnalyzer {
     constructor() {
         this.initializeElements();
         this.initializeProjects();
-        this.initializeViabilityCalculator();
         this.setupEventListeners();
         this.setupSliders();
         this.setupTabs();
         this.loadConfigAndInitialize();
+        // Initialize viability calculator after config is loaded
+        this.initializeViabilityCalculator();
     }
 
     initializeElements() {
@@ -328,6 +329,8 @@ class REITAnalyzer {
     }
 
     resetViabilityForm() {
+        // Recreate viability calculator to get fresh config values
+        this.viabilityCalculator = new ViabilityCalculator();
         const defaults = this.viabilityCalculator.defaultValues;
 
         this.viabilityElements.nameInput.value = '';

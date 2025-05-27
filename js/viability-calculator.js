@@ -2,19 +2,24 @@ import { calculateAnnualMortgagePayment } from './utils.js';
 
 export class ViabilityCalculator {
     constructor() {
+        // Get default values from config.js if available, otherwise use fallback values
+        const config = window.REIT_CONFIG || {};
+        const generalConfig = config.general || {};
+        const project1Config = config.project1 || {};
+
         this.defaultValues = {
-            targetMonthlyCashflow: 2000000, // COP
-            availableCapital: 50000000, // COP
-            expectedRentalYield: 7.0, // %
-            loanTermYears: 30,
-            interestRate: 12.0, // % EA
-            downPaymentPercent: 30, // %
-            notaryFeesPercent: 2.5, // %
-            propertyTaxPercent: 0.5, // %
-            maintenancePercent: 1.0, // %
-            insurancePercent: 0.3, // %
-            adminFeePercent: 0.5, // % of monthly rent
-            inflationRate: 5.0 // %
+            targetMonthlyCashflow: 2000000, // COP - specific to viability analysis
+            availableCapital: 50000000, // COP - specific to viability analysis
+            expectedRentalYield: 7.0, // % - specific to viability analysis
+            loanTermYears: generalConfig.loanTermYears || 10,
+            interestRate: project1Config.creditRate || 12.0, // % EA
+            downPaymentPercent: project1Config.downPaymentPercent || 30, // %
+            notaryFeesPercent: generalConfig.notaryFeesPercent || 2.5, // %
+            propertyTaxPercent: project1Config.propertyTaxPercent || 0.5, // %
+            maintenancePercent: project1Config.maintenancePercent || 1.0, // %
+            insurancePercent: project1Config.insurancePercent || 0.3, // %
+            adminFeePercent: 0.5, // % of monthly rent - specific to viability analysis
+            inflationRate: generalConfig.inflationRate || 5.0 // %
         };
     }
 
