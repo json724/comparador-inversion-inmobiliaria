@@ -8,6 +8,7 @@ class REITAnalyzer {
     constructor() {
         this.initializeElements();
         this.initializeProjects();
+        this.initializeViabilityElements();
         this.setupEventListeners();
         this.setupSliders();
         this.setupTabs();
@@ -86,9 +87,7 @@ class REITAnalyzer {
         this.project2Manager = new ProjectManager('project2', project2Elements);
     }
 
-    initializeViabilityCalculator() {
-        this.viabilityCalculator = new ViabilityCalculator();
-
+    initializeViabilityElements() {
         // Viability form elements
         this.viabilityElements = {
             nameInput: document.getElementById('viabilityName'),
@@ -111,6 +110,23 @@ class REITAnalyzer {
         // Set current date
         const today = new Date().toISOString().split('T')[0];
         this.viabilityElements.dateInput.value = today;
+    }
+
+    initializeViabilityCalculator() {
+        this.viabilityCalculator = new ViabilityCalculator();
+
+        // Set default values from calculator
+        const defaults = this.viabilityCalculator.defaultValues;
+        this.viabilityElements.targetMonthlyCashflowInput.value = defaults.targetMonthlyCashflow;
+        this.viabilityElements.availableCapitalInput.value = defaults.availableCapital;
+        this.viabilityElements.expectedRentalYieldInput.value = defaults.expectedRentalYield;
+        this.viabilityElements.loanTermYearsInput.value = defaults.loanTermYears;
+        this.viabilityElements.interestRateInput.value = defaults.interestRate;
+        this.viabilityElements.downPaymentPercentInput.value = defaults.downPaymentPercent;
+        this.viabilityElements.notaryFeesPercentInput.value = defaults.notaryFeesPercent;
+        this.viabilityElements.propertyTaxPercentInput.value = defaults.propertyTaxPercent;
+        this.viabilityElements.maintenancePercentInput.value = defaults.maintenancePercent;
+        this.viabilityElements.insurancePercentInput.value = defaults.insurancePercent;
     }
 
     setupEventListeners() {
@@ -222,10 +238,14 @@ class REITAnalyzer {
     }
 
     switchTab(tabName) {
+        console.log('Switching to tab:', tabName);
+
         // Clear results when switching tabs
         this.resultsArea.innerHTML = '';
         this.errorMessageDiv.textContent = '';
-        this.viabilityElements.errorMessage.textContent = '';
+        if (this.viabilityElements && this.viabilityElements.errorMessage) {
+            this.viabilityElements.errorMessage.textContent = '';
+        }
 
         if (tabName === 'comparator') {
             this.comparatorTab.classList.add('active');
@@ -238,6 +258,8 @@ class REITAnalyzer {
             this.viabilitySection.classList.remove('hidden');
             this.comparatorSection.classList.add('hidden');
         }
+
+        console.log('Tab switch completed');
     }
 
     calculateViability() {
