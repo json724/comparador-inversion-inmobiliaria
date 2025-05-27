@@ -11,7 +11,7 @@ export class ViabilityCalculator {
             targetMonthlyCashflow: 2000000, // COP - specific to viability analysis
             availableCapital: 50000000, // COP - specific to viability analysis
             expectedRentalYield: 7.0, // % - specific to viability analysis
-            loanTermYears: generalConfig.loanTermYears || 10,
+            loanTermYears: 30, // Use 30 years for viability analysis (more realistic for buy-to-rent)
             interestRate: project1Config.creditRate || 12.0, // % EA
             downPaymentPercent: project1Config.downPaymentPercent || 30, // %
             notaryFeesPercent: generalConfig.notaryFeesPercent || 2.5, // %
@@ -34,8 +34,7 @@ export class ViabilityCalculator {
             propertyTaxPercent,
             maintenancePercent,
             insurancePercent,
-            adminFeePercent,
-            inflationRate
+            adminFeePercent
         } = inputs;
 
         // Convert percentages to decimals
@@ -58,6 +57,14 @@ export class ViabilityCalculator {
         const maxIterations = 100;
         const tolerance = 1000; // COP tolerance
 
+        // Debug: Log initial estimate
+        console.log('=== CÁLCULO DE VIABILIDAD - DEBUG ===');
+        console.log(`Cashflow objetivo mensual: ${this.formatCOP(targetMonthlyCashflow)}`);
+        console.log(`Cashflow objetivo anual: ${this.formatCOP(targetAnnualCashflow)}`);
+        console.log(`Rentabilidad esperada: ${expectedRentalYield}%`);
+        console.log(`Estimación inicial de valor de propiedad: ${this.formatCOP(propertyValue)}`);
+        console.log('');
+
         while (iterations < maxIterations) {
             const result = this.calculateCashflowForPropertyValue(propertyValue, {
                 interestRateDecimal,
@@ -73,7 +80,21 @@ export class ViabilityCalculator {
 
             const cashflowDifference = result.netAnnualCashflow - targetAnnualCashflow;
 
+            // Debug: Log iteration details
+            if (iterations < 5 || iterations % 10 === 0) {
+                console.log(`--- Iteración ${iterations + 1} ---`);
+                console.log(`Valor propiedad: ${this.formatCOP(propertyValue)}`);
+                console.log(`Renta anual calculada: ${this.formatCOP(result.annualRent)}`);
+                console.log(`Gastos anuales totales: ${this.formatCOP(result.totalAnnualExpenses)}`);
+                console.log(`Pago hipoteca anual: ${this.formatCOP(result.annualMortgagePayment)}`);
+                console.log(`Cashflow neto anual: ${this.formatCOP(result.netAnnualCashflow)}`);
+                console.log(`Diferencia con objetivo: ${this.formatCOP(cashflowDifference)}`);
+                console.log(`Capital requerido: ${this.formatCOP(result.requiredDownPayment)}`);
+                console.log('');
+            }
+
             if (Math.abs(cashflowDifference) < tolerance) {
+                console.log(`Convergencia alcanzada en ${iterations + 1} iteraciones`);
                 break;
             }
 
@@ -96,6 +117,13 @@ export class ViabilityCalculator {
             adminFeeDecimal,
             rentalYieldDecimal
         });
+
+        console.log('=== RESULTADO FINAL ===');
+        console.log(`Valor de propiedad necesario: ${this.formatCOP(propertyValue)}`);
+        console.log(`Capital total requerido: ${this.formatCOP(finalResult.requiredDownPayment)}`);
+        console.log(`Renta mensual: ${this.formatCOP(finalResult.monthlyRent)}`);
+        console.log(`Cashflow neto mensual: ${this.formatCOP(finalResult.netAnnualCashflow / 12)}`);
+        console.log('========================');
 
         return {
             requiredPropertyValue: propertyValue,
@@ -245,5 +273,90 @@ export class ViabilityCalculator {
         });
 
         return scenarios;
+    }
+
+    // Manual calculation example to understand the logic
+    showManualCalculationExample() {
+        console.log('=== EJEMPLO DE CÁLCULO MANUAL ===');
+
+        // Example values
+        const targetMonthlyCashflow = 2000000; // COP
+        const targetAnnualCashflow = targetMonthlyCashflow * 12; // 24,000,000 COP
+        const rentalYield = 7; // %
+        const loanTermYears = 30; // años (más realista para buy-to-rent)
+        const interestRate = 12; // % EA
+        const downPaymentPercent = 30; // %
+
+        console.log(`1. Objetivo: ${this.formatCOP(targetMonthlyCashflow)} mensuales = ${this.formatCOP(targetAnnualCashflow)} anuales`);
+        console.log(`2. Parámetros: Rentabilidad ${rentalYield}%, Crédito ${loanTermYears} años al ${interestRate}%, Cuota inicial ${downPaymentPercent}%`);
+        console.log('');
+
+        // Let's try with a property value and see what cashflow we get
+        const examplePropertyValue = 500000000; // 500M COP
+        console.log(`3. Ejemplo con propiedad de ${this.formatCOP(examplePropertyValue)}:`);
+
+        // Calculate rent
+        const annualRent = examplePropertyValue * (rentalYield / 100);
+        const monthlyRent = annualRent / 12;
+        console.log(`   - Renta anual (${rentalYield}%): ${this.formatCOP(annualRent)}`);
+        console.log(`   - Renta mensual: ${this.formatCOP(monthlyRent)}`);
+
+        // Calculate expenses (using default percentages)
+        const propertyTax = examplePropertyValue * 0.005; // 0.5%
+        const maintenance = examplePropertyValue * 0.01; // 1%
+        const insurance = examplePropertyValue * 0.003; // 0.3%
+        const adminFee = annualRent * 0.005; // 0.5% of rent
+        const totalExpenses = propertyTax + maintenance + insurance + adminFee;
+        console.log(`   - Gastos anuales: ${this.formatCOP(totalExpenses)}`);
+        console.log(`     * Predial (0.5%): ${this.formatCOP(propertyTax)}`);
+        console.log(`     * Mantenimiento (1%): ${this.formatCOP(maintenance)}`);
+        console.log(`     * Seguro (0.3%): ${this.formatCOP(insurance)}`);
+        console.log(`     * Administración (0.5% renta): ${this.formatCOP(adminFee)}`);
+
+        // Calculate financing
+        const notaryFees = examplePropertyValue * 0.025; // 2.5%
+        const totalValueWithNotary = examplePropertyValue + notaryFees;
+        const downPayment = totalValueWithNotary * (downPaymentPercent / 100);
+        const loanAmount = totalValueWithNotary - downPayment;
+        console.log(`   - Valor total con notaría: ${this.formatCOP(totalValueWithNotary)}`);
+        console.log(`   - Cuota inicial (${downPaymentPercent}%): ${this.formatCOP(downPayment)}`);
+        console.log(`   - Monto del crédito: ${this.formatCOP(loanAmount)}`);
+
+        // Calculate mortgage payment
+        const annualMortgagePayment = calculateAnnualMortgagePayment(loanAmount, interestRate / 100, loanTermYears);
+        const monthlyMortgagePayment = annualMortgagePayment / 12;
+        console.log(`   - Pago hipoteca anual (${loanTermYears} años al ${interestRate}%): ${this.formatCOP(annualMortgagePayment)}`);
+        console.log(`   - Pago hipoteca mensual: ${this.formatCOP(monthlyMortgagePayment)}`);
+
+        // Calculate net cashflow
+        const netAnnualCashflow = annualRent - totalExpenses - annualMortgagePayment;
+        const netMonthlyCashflow = netAnnualCashflow / 12;
+        console.log(`   - Cashflow neto anual: ${this.formatCOP(netAnnualCashflow)}`);
+        console.log(`   - Cashflow neto mensual: ${this.formatCOP(netMonthlyCashflow)}`);
+
+        console.log('');
+        console.log('4. ANÁLISIS:');
+        if (netMonthlyCashflow < targetMonthlyCashflow) {
+            const deficit = targetMonthlyCashflow - netMonthlyCashflow;
+            console.log(`   ❌ DÉFICIT: Faltan ${this.formatCOP(deficit)} mensuales`);
+            console.log(`   📈 Necesitas una propiedad MÁS CARA para generar más renta`);
+
+            // Show what happens with 10-year loan for comparison
+            const annualMortgagePayment10 = calculateAnnualMortgagePayment(loanAmount, interestRate / 100, 10);
+            const netCashflow10 = annualRent - totalExpenses - annualMortgagePayment10;
+            console.log(`   ⚠️  Con crédito a 10 años: Pago anual ${this.formatCOP(annualMortgagePayment10)}`);
+            console.log(`   ⚠️  Cashflow neto mensual sería: ${this.formatCOP(netCashflow10 / 12)}`);
+        } else {
+            const surplus = netMonthlyCashflow - targetMonthlyCashflow;
+            console.log(`   ✅ SUPERÁVIT: Sobran ${this.formatCOP(surplus)} mensuales`);
+            console.log(`   📉 Podrías comprar una propiedad MÁS BARATA`);
+        }
+
+        console.log('');
+        console.log('5. CONCLUSIÓN:');
+        console.log(`   Con ${loanTermYears} años de plazo, los pagos hipotecarios son más manejables`);
+        console.log(`   Esto permite usar propiedades de valor más razonable`);
+        console.log(`   El plazo del crédito es CLAVE para la viabilidad del buy-to-rent`);
+        console.log('================================');
     }
 }

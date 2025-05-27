@@ -262,6 +262,9 @@ class REITAnalyzer {
         try {
             this.viabilityElements.errorMessage.textContent = '';
 
+            // Show manual calculation example first
+            this.viabilityCalculator.showManualCalculationExample();
+
             const inputs = this.getViabilityInputs();
             if (!inputs) return;
 
