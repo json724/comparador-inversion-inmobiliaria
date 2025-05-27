@@ -237,9 +237,7 @@ class REITAnalyzer {
         this.viabilityTab.addEventListener('click', () => this.switchTab('viability'));
     }
 
-    switchTab(tabName) {
-        console.log('Switching to tab:', tabName);
-
+        switchTab(tabName) {
         // Clear results when switching tabs
         this.resultsArea.innerHTML = '';
         this.errorMessageDiv.textContent = '';
@@ -258,8 +256,6 @@ class REITAnalyzer {
             this.viabilitySection.classList.remove('hidden');
             this.comparatorSection.classList.add('hidden');
         }
-
-        console.log('Tab switch completed');
     }
 
     calculateViability() {

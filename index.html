@@ -262,6 +262,28 @@
         <section id="viabilitySection" class="tab-content mb-10 p-6 bg-green-50 rounded-xl shadow-lg border border-green-200 hidden">
             <h2 class="text-2xl font-semibold text-green-700 mb-6 border-b-2 border-green-200 pb-2">¿Es Viable para Mí Comprar para Alquilar?</h2>
 
+            <!-- Explanation Panel -->
+            <div class="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                <h3 class="text-lg font-semibold text-blue-700 mb-2">💡 ¿Cómo funciona este análisis?</h3>
+                <p class="text-sm text-gray-700 mb-3">
+                    A diferencia del comparador tradicional, aquí <strong>partes de tu objetivo financiero</strong> y calculamos qué necesitas para lograrlo:
+                </p>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs">
+                    <div class="bg-white p-3 rounded border-l-4 border-green-500">
+                        <strong class="text-green-600">1. Tu Objetivo</strong><br>
+                        Define cuánto cashflow mensual quieres recibir (ej: $2M COP/mes)
+                    </div>
+                    <div class="bg-white p-3 rounded border-l-4 border-blue-500">
+                        <strong class="text-blue-600">2. Tu Realidad</strong><br>
+                        Indica cuánto capital tienes disponible para invertir
+                    </div>
+                    <div class="bg-white p-3 rounded border-l-4 border-purple-500">
+                        <strong class="text-purple-600">3. El Resultado</strong><br>
+                        Te decimos si es viable y qué propiedad necesitas comprar
+                    </div>
+                </div>
+            </div>
+
             <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-x-6 gap-y-8 mb-6">
                 <!-- Personal Information -->
                 <div class="p-4 bg-white rounded-lg shadow border border-gray-200">
@@ -281,15 +303,18 @@
                     <h3 class="text-lg font-semibold text-green-600 mb-3">Objetivos Financieros</h3>
                     <div class="input-group">
                         <label for="targetMonthlyCashflow">¿Qué Cashflow quieres al mes? (COP):</label>
-                        <input type="number" id="targetMonthlyCashflow" value="2000000" class="mt-1">
+                        <input type="number" id="targetMonthlyCashflow" value="2000000" class="mt-1" title="Ingreso neto mensual que quieres recibir después de todos los gastos (hipoteca, impuestos, mantenimiento, etc.)">
+                        <p class="text-xs text-gray-500 mt-1">💡 Ingreso neto mensual que quieres recibir después de gastos</p>
                     </div>
                     <div class="input-group">
                         <label for="availableCapital">¿Qué Capital tienes disponible? (COP):</label>
-                        <input type="number" id="availableCapital" value="50000000" class="mt-1">
+                        <input type="number" id="availableCapital" value="50000000" class="mt-1" title="Dinero real que tienes disponible para la cuota inicial de la propiedad">
+                        <p class="text-xs text-gray-500 mt-1">💰 Dinero que tienes para la cuota inicial</p>
                     </div>
                     <div class="input-group">
                         <label for="expectedRentalYield">¿Qué Rentabilidad Neta puedes obtener comprando para Alquilar? (%):</label>
-                        <input type="number" id="expectedRentalYield" value="7" step="0.1" min="0" max="20" class="mt-1">
+                        <input type="number" id="expectedRentalYield" value="7" step="0.1" min="0" max="20" class="mt-1" title="Rentabilidad anual neta esperada basada en el mercado inmobiliario de tu zona">
+                        <p class="text-xs text-gray-500 mt-1">📈 Rentabilidad anual neta esperada en tu zona (típicamente 5-10%)</p>
                     </div>
                 </div>
 
