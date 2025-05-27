@@ -2,13 +2,16 @@ import { updateSliderValueDisplay } from './utils.js';
 import { ProjectManager } from './project-manager.js';
 import { calculatePropertyMetrics, getAnnualCashFlowBreakdown } from './calculations.js';
 import { UIComponents } from './ui-components.js';
+import { ViabilityCalculator } from './viability-calculator.js';
 
 class REITAnalyzer {
     constructor() {
         this.initializeElements();
         this.initializeProjects();
+        this.initializeViabilityCalculator();
         this.setupEventListeners();
         this.setupSliders();
+        this.setupTabs();
         this.loadConfigAndInitialize();
     }
 
@@ -82,6 +85,33 @@ class REITAnalyzer {
         this.project2Manager = new ProjectManager('project2', project2Elements);
     }
 
+    initializeViabilityCalculator() {
+        this.viabilityCalculator = new ViabilityCalculator();
+
+        // Viability form elements
+        this.viabilityElements = {
+            nameInput: document.getElementById('viabilityName'),
+            dateInput: document.getElementById('viabilityDate'),
+            targetMonthlyCashflowInput: document.getElementById('targetMonthlyCashflow'),
+            availableCapitalInput: document.getElementById('availableCapital'),
+            expectedRentalYieldInput: document.getElementById('expectedRentalYield'),
+            loanTermYearsInput: document.getElementById('viabilityLoanTermYears'),
+            interestRateInput: document.getElementById('viabilityInterestRate'),
+            downPaymentPercentInput: document.getElementById('viabilityDownPaymentPercent'),
+            notaryFeesPercentInput: document.getElementById('viabilityNotaryFeesPercent'),
+            propertyTaxPercentInput: document.getElementById('viabilityPropertyTaxPercent'),
+            maintenancePercentInput: document.getElementById('viabilityMaintenancePercent'),
+            insurancePercentInput: document.getElementById('viabilityInsurancePercent'),
+            calculateButton: document.getElementById('calculateViabilityButton'),
+            resetButton: document.getElementById('resetViabilityButton'),
+            errorMessage: document.getElementById('viabilityErrorMessage')
+        };
+
+        // Set current date
+        const today = new Date().toISOString().split('T')[0];
+        this.viabilityElements.dateInput.value = today;
+    }
+
     setupEventListeners() {
         this.calculateButton.addEventListener('click', () => this.displayResults());
         this.resetButton.addEventListener('click', () => this.resetToConfig());
@@ -94,6 +124,10 @@ class REITAnalyzer {
         [this.notaryFeesPercentInput, this.loanTermYearsSlider].forEach(input => {
             input.addEventListener('input', () => this.triggerFinancingCalculationsUpdate());
         });
+
+        // Viability calculator event listeners
+        this.viabilityElements.calculateButton.addEventListener('click', () => this.calculateViability());
+        this.viabilityElements.resetButton.addEventListener('click', () => this.resetViabilityForm());
     }
 
     setupSliders() {
@@ -174,6 +208,145 @@ class REITAnalyzer {
         }
 
         return this.validateInputs(inputs);
+    }
+
+    setupTabs() {
+        this.comparatorTab = document.getElementById('comparatorTab');
+        this.viabilityTab = document.getElementById('viabilityTab');
+        this.comparatorSection = document.getElementById('comparatorSection');
+        this.viabilitySection = document.getElementById('viabilitySection');
+
+        this.comparatorTab.addEventListener('click', () => this.switchTab('comparator'));
+        this.viabilityTab.addEventListener('click', () => this.switchTab('viability'));
+    }
+
+    switchTab(tabName) {
+        // Clear results when switching tabs
+        this.resultsArea.innerHTML = '';
+        this.errorMessageDiv.textContent = '';
+        this.viabilityElements.errorMessage.textContent = '';
+
+        if (tabName === 'comparator') {
+            this.comparatorTab.classList.add('active');
+            this.viabilityTab.classList.remove('active');
+            this.comparatorSection.classList.remove('hidden');
+            this.viabilitySection.classList.add('hidden');
+        } else {
+            this.viabilityTab.classList.add('active');
+            this.comparatorTab.classList.remove('active');
+            this.viabilitySection.classList.remove('hidden');
+            this.comparatorSection.classList.add('hidden');
+        }
+    }
+
+    calculateViability() {
+        try {
+            this.viabilityElements.errorMessage.textContent = '';
+
+            const inputs = this.getViabilityInputs();
+            if (!inputs) return;
+
+            const result = this.viabilityCalculator.calculateRequiredCapital(inputs);
+            const analysis = this.viabilityCalculator.analyzeViability(result.totalRequiredCapital, inputs.availableCapital);
+            const scenarios = this.viabilityCalculator.generateAlternativeScenarios(inputs, inputs.availableCapital);
+
+            this.displayViabilityResults(result, analysis, inputs, scenarios);
+
+        } catch (error) {
+            console.error('Error calculating viability:', error);
+            this.viabilityElements.errorMessage.textContent = 'Error en el cálculo. Por favor verifica los datos ingresados.';
+        }
+    }
+
+    getViabilityInputs() {
+        const inputs = {
+            name: this.viabilityElements.nameInput.value.trim(),
+            date: this.viabilityElements.dateInput.value,
+            targetMonthlyCashflow: parseFloat(this.viabilityElements.targetMonthlyCashflowInput.value),
+            availableCapital: parseFloat(this.viabilityElements.availableCapitalInput.value),
+            expectedRentalYield: parseFloat(this.viabilityElements.expectedRentalYieldInput.value),
+            loanTermYears: parseInt(this.viabilityElements.loanTermYearsInput.value),
+            interestRate: parseFloat(this.viabilityElements.interestRateInput.value),
+            downPaymentPercent: parseFloat(this.viabilityElements.downPaymentPercentInput.value),
+            notaryFeesPercent: parseFloat(this.viabilityElements.notaryFeesPercentInput.value),
+            propertyTaxPercent: parseFloat(this.viabilityElements.propertyTaxPercentInput.value),
+            maintenancePercent: parseFloat(this.viabilityElements.maintenancePercentInput.value),
+            insurancePercent: parseFloat(this.viabilityElements.insurancePercentInput.value),
+            adminFeePercent: 0.5, // Default admin fee as percentage of rent
+            inflationRate: 5.0 // Default inflation rate
+        };
+
+        // Validation
+        const errors = [];
+
+        if (isNaN(inputs.targetMonthlyCashflow) || inputs.targetMonthlyCashflow <= 0) {
+            errors.push('El cashflow mensual objetivo debe ser un número positivo.');
+        }
+        if (isNaN(inputs.availableCapital) || inputs.availableCapital <= 0) {
+            errors.push('El capital disponible debe ser un número positivo.');
+        }
+        if (isNaN(inputs.expectedRentalYield) || inputs.expectedRentalYield <= 0 || inputs.expectedRentalYield > 50) {
+            errors.push('La rentabilidad esperada debe estar entre 0% y 50%.');
+        }
+        if (isNaN(inputs.loanTermYears) || inputs.loanTermYears <= 0 || inputs.loanTermYears > 50) {
+            errors.push('El plazo del crédito debe estar entre 1 y 50 años.');
+        }
+        if (isNaN(inputs.interestRate) || inputs.interestRate < 0 || inputs.interestRate > 50) {
+            errors.push('La tasa de interés debe estar entre 0% y 50%.');
+        }
+        if (isNaN(inputs.downPaymentPercent) || inputs.downPaymentPercent < 10 || inputs.downPaymentPercent > 100) {
+            errors.push('La cuota inicial debe estar entre 10% y 100%.');
+        }
+
+        if (errors.length > 0) {
+            this.viabilityElements.errorMessage.textContent = errors.join(' ');
+            return null;
+        }
+
+        return inputs;
+    }
+
+    displayViabilityResults(result, analysis, inputs, scenarios) {
+        const userName = inputs.name || 'Usuario';
+        const formattedDate = new Date(inputs.date).toLocaleDateString('es-CO');
+
+        let html = `
+            <div class="bg-white p-8 rounded-xl shadow-lg">
+                <div class="text-center mb-6">
+                    <h2 class="text-2xl font-bold text-gray-800">Análisis de Viabilidad para ${userName}</h2>
+                    <p class="text-gray-600">Fecha: ${formattedDate}</p>
+                    <p class="text-lg text-blue-600 mt-2">Objetivo: ${this.viabilityCalculator.formatCOP(inputs.targetMonthlyCashflow)} mensuales</p>
+                </div>
+
+                ${UIComponents.createViabilityResultHTML(result, analysis, inputs)}
+                ${UIComponents.createViabilityDetailsHTML(result, inputs)}
+                ${UIComponents.createAlternativeScenariosHTML(scenarios)}
+            </div>
+        `;
+
+        this.resultsArea.innerHTML = html;
+    }
+
+    resetViabilityForm() {
+        const defaults = this.viabilityCalculator.defaultValues;
+
+        this.viabilityElements.nameInput.value = '';
+        this.viabilityElements.targetMonthlyCashflowInput.value = defaults.targetMonthlyCashflow;
+        this.viabilityElements.availableCapitalInput.value = defaults.availableCapital;
+        this.viabilityElements.expectedRentalYieldInput.value = defaults.expectedRentalYield;
+        this.viabilityElements.loanTermYearsInput.value = defaults.loanTermYears;
+        this.viabilityElements.interestRateInput.value = defaults.interestRate;
+        this.viabilityElements.downPaymentPercentInput.value = defaults.downPaymentPercent;
+        this.viabilityElements.notaryFeesPercentInput.value = defaults.notaryFeesPercent;
+        this.viabilityElements.propertyTaxPercentInput.value = defaults.propertyTaxPercent;
+        this.viabilityElements.maintenancePercentInput.value = defaults.maintenancePercent;
+        this.viabilityElements.insurancePercentInput.value = defaults.insurancePercent;
+
+        const today = new Date().toISOString().split('T')[0];
+        this.viabilityElements.dateInput.value = today;
+
+        this.viabilityElements.errorMessage.textContent = '';
+        this.resultsArea.innerHTML = '';
     }
 
     validateInputs(inputs) {

@@ -185,4 +185,147 @@ export class UIComponents {
         if (years < 0) return principal;
         return principal * Math.pow(1 + rate, years);
     }
+
+    // Viability Analysis UI Components
+    static createViabilityResultHTML(result, analysis, inputs) {
+        const formatCOP = (amount) => new Intl.NumberFormat('es-CO', {
+            style: 'currency',
+            currency: 'COP',
+            minimumFractionDigits: 0,
+            maximumFractionDigits: 0
+        }).format(amount);
+
+        return `
+            <div class="viability-result-card">
+                <div class="viability-status ${analysis.statusColor}">
+                    ${analysis.viabilityStatus}
+                </div>
+
+                <div class="viability-metrics">
+                    <div class="viability-metric">
+                        <div class="viability-metric-label">Capital Total Necesario</div>
+                        <div class="viability-metric-value">${formatCOP(result.totalRequiredCapital)}</div>
+                    </div>
+                    <div class="viability-metric">
+                        <div class="viability-metric-label">Capital Disponible</div>
+                        <div class="viability-metric-value">${formatCOP(inputs.availableCapital)}</div>
+                    </div>
+                    <div class="viability-metric">
+                        <div class="viability-metric-label">Viabilidad</div>
+                        <div class="viability-metric-value">${analysis.viabilityPercentage.toFixed(1)}%</div>
+                    </div>
+                    ${analysis.capitalGap > 0 ? `
+                    <div class="viability-metric">
+                        <div class="viability-metric-label">Capital Faltante</div>
+                        <div class="viability-metric-value text-red-600">${formatCOP(analysis.capitalGap)}</div>
+                    </div>
+                    ` : ''}
+                </div>
+
+                <div class="viability-recommendation">
+                    <h4 class="text-lg font-semibold text-gray-800 mb-2">💡 Recomendación</h4>
+                    <p class="text-gray-700">${analysis.recommendation}</p>
+                </div>
+            </div>
+        `;
+    }
+
+    static createViabilityDetailsHTML(result, inputs) {
+        const formatCOP = (amount) => new Intl.NumberFormat('es-CO', {
+            style: 'currency',
+            currency: 'COP',
+            minimumFractionDigits: 0,
+            maximumFractionDigits: 0
+        }).format(amount);
+
+        return `
+            <div class="mt-8">
+                <h3 class="text-xl font-semibold text-gray-800 mb-4">📋 Detalles del Análisis</h3>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div class="bg-white p-6 rounded-lg shadow border">
+                        <h4 class="text-lg font-semibold text-blue-600 mb-4">🏠 Propiedad Requerida</h4>
+                        <ul class="space-y-2 text-sm">
+                            <li><strong>Valor de la Propiedad:</strong> ${formatCOP(result.requiredPropertyValue)}</li>
+                            <li><strong>Valor Total con Notaría:</strong> ${formatCOP(result.totalValueWithNotary)}</li>
+                            <li><strong>Arriendo Mensual Estimado:</strong> ${formatCOP(result.monthlyRent)}</li>
+                            <li><strong>Arriendo Anual Estimado:</strong> ${formatCOP(result.annualRent)}</li>
+                        </ul>
+                    </div>
+
+                    <div class="bg-white p-6 rounded-lg shadow border">
+                        <h4 class="text-lg font-semibold text-green-600 mb-4">💰 Financiamiento</h4>
+                        <ul class="space-y-2 text-sm">
+                            <li><strong>Cuota Inicial (${inputs.downPaymentPercent}%):</strong> ${formatCOP(result.requiredDownPayment)}</li>
+                            <li><strong>Monto del Crédito:</strong> ${formatCOP(result.loanAmount)}</li>
+                            <li><strong>Cuota Anual Estimada:</strong> ${formatCOP(result.annualMortgagePayment)}</li>
+                            <li><strong>Plazo:</strong> ${inputs.loanTermYears} años</li>
+                        </ul>
+                    </div>
+
+                    <div class="bg-white p-6 rounded-lg shadow border">
+                        <h4 class="text-lg font-semibold text-purple-600 mb-4">📊 Flujo de Caja</h4>
+                        <ul class="space-y-2 text-sm">
+                            <li><strong>Ingresos Anuales:</strong> ${formatCOP(result.annualRent)}</li>
+                            <li><strong>Gastos Anuales Estimados:</strong> ${formatCOP(result.totalAnnualExpenses)}</li>
+                            <li><strong>Cuota Hipoteca Anual:</strong> ${formatCOP(result.annualMortgagePayment)}</li>
+                            <li><strong>Cashflow Neto Mensual:</strong> <span class="font-bold text-green-600">${formatCOP(result.netMonthlyCashflow)}</span></li>
+                        </ul>
+                    </div>
+
+                    <div class="bg-white p-6 rounded-lg shadow border">
+                        <h4 class="text-lg font-semibold text-orange-600 mb-4">⚙️ Parámetros Utilizados</h4>
+                        <ul class="space-y-2 text-sm">
+                            <li><strong>Rentabilidad Esperada:</strong> ${inputs.expectedRentalYield}%</li>
+                            <li><strong>Tasa de Interés:</strong> ${inputs.interestRate}% E.A.</li>
+                            <li><strong>Gastos de Notaría:</strong> ${inputs.notaryFeesPercent}%</li>
+                            <li><strong>Gastos Operativos:</strong> ~${(inputs.propertyTaxPercent + inputs.maintenancePercent + inputs.insurancePercent).toFixed(1)}% anual</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        `;
+    }
+
+    static createAlternativeScenariosHTML(scenarios) {
+        const formatCOP = (amount) => new Intl.NumberFormat('es-CO', {
+            style: 'currency',
+            currency: 'COP',
+            minimumFractionDigits: 0,
+            maximumFractionDigits: 0
+        }).format(amount);
+
+        let html = `
+            <div class="mt-8">
+                <h3 class="text-xl font-semibold text-gray-800 mb-4">🔄 Escenarios Alternativos</h3>
+                <p class="text-gray-600 mb-6">Si el escenario actual no es viable, considera estas alternativas:</p>
+
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+        `;
+
+        scenarios.forEach(scenario => {
+            html += `
+                <div class="scenario-card">
+                    <div class="scenario-title">${scenario.name}</div>
+                    <div class="space-y-2 text-sm">
+                        <div><strong>Capital Necesario:</strong> ${formatCOP(scenario.result.totalRequiredCapital)}</div>
+                        <div><strong>Cashflow Mensual:</strong> ${formatCOP(scenario.result.netMonthlyCashflow)}</div>
+                        <div class="mt-3">
+                            <span class="inline-block px-2 py-1 text-xs font-semibold rounded ${scenario.analysis.statusColor} bg-opacity-10">
+                                ${scenario.analysis.viabilityStatus}
+                            </span>
+                            <span class="ml-2 text-xs">${scenario.analysis.viabilityPercentage.toFixed(1)}%</span>
+                        </div>
+                    </div>
+                </div>
+            `;
+        });
+
+        html += `
+                </div>
+            </div>
+        `;
+
+        return html;
+    }
 }
